@@ -36,11 +36,11 @@ class HSS:
         self.f = []     # Differential equations
         self.u = []     # Input vector
         self.y = []     # Output vector
-        self.p = []     # Parameters for parametric studies
+        self.p = []     # Parameters (for parametric studies)
+        self.p_value = []  # Inserted values in p
         self.x0 = []    # Initial guess state variables
         self.u0 = []    # Input
-        self.p_range = [] # Parameter range for sweep
-        self.paramvals = None # Replaces p_range
+        self.p_space = None  # Replaces p_range
         self.toe_l = None
         self.setup()    # Set the above attributes
 
@@ -97,8 +97,7 @@ class HSS:
         #self.peval = [1,20]
         self.calc_init()
 
-        # Parametric study
-        self.peval = [0] * len(self.p)  # Inserted values in p
+        # 2-param damping plot
         self.XYmesh = (None, None)
         self.damps = np.empty(0)
 
@@ -107,7 +106,7 @@ class HSS:
 
     def find_pss(self):
         self.err = 100
-        u_inp = [self.t_arr] + self.peval
+        u_inp = [self.t_arr] + self.p_value
         for ind, xtf in enumerate(self.ut_lam):
             y = xtf(*u_inp)
             if type(y) == np.ndarray:
@@ -221,7 +220,7 @@ class HSS:
         self.f_inp += u_inp
 
         #self.peval = [np.ones(self.Nt)*i for i in self.peval]
-        self.f_inp += self.peval
+        self.f_inp += self.p_value
         #print(self.f_inp)
         #for i in f_inp:
         #plt.plot(self.tarr,i)
@@ -395,7 +394,6 @@ class HSS:
             self.pf_filt[i, :] = self.p_f[rowidxs*self.Nx+i, colidxs]
             self.npf[i,:] = rowidxs-self.N
 
-
     def find_center_eig(self):
         """
         Deprecated
@@ -521,7 +519,6 @@ class HSS:
         self.rev_abs = self.rev_abs[self.rev_abs.max(axis=1)>0.1]
         return pf
 
-
     def hss_to_htf(self,freqs, tol=1e-10):
         # Supports only first output and input variable
         sI = 2*np.pi*1j*np.eye((2*self.N+1)*self.Nx)
@@ -567,7 +564,6 @@ class HSS:
         """
         return HTM(freqs, a)
 
-
     def plotstates(self):
         ax = plt.subplot()
         legends = []
@@ -587,20 +583,18 @@ class HSS:
         plt.legend()
         return ax
 
-    def parametric_sweep(self):
-        num_p = len(self.paramvals)
-        if num_p == 1:
-            pass
-        elif num_p == 2:
-            pass
-        pspace = self.paramvals
+    def two_param_sweep(self):
+        num_p = len(self.p_space)
+        if num_p != 2:
+            raise AssertionError('Number of parameters is not 2!')
+        pspace = self.p_space
         damps = 2*np.ones((len(pspace[0]),len(pspace[1])))
         print(damps)
         print(pspace)
         for indi, ival in enumerate(pspace[0]):
             if(len(pspace) > 1):
                 for indj, jval in enumerate(pspace[1]):
-                    self.peval = [ival,jval]
+                    self.p_value = [ival, jval]
                     self.find_pss()
                     self.calc_eigs()
                     self.pf_table()
@@ -612,11 +606,11 @@ class HSS:
     def root_locus(self):
         import matplotlib.patches as mpatches
         fig, ax = plt.subplots(1)
-        pspace = self.paramvals[0]
+        pspace = self.p_space[0]
         n_runs = len(pspace)
         colmap = plt.cm.get_cmap('hsv', self.Nx+1)
         for indi, ival in enumerate(pspace):
-            self.peval = [ival]
+            self.p_value = [ival]
             self.find_pss()
             self.calc_eigs()
             self.pf_table()
@@ -638,13 +632,13 @@ class HSS:
         ax.grid(True)
 
     def eigenloci(self):
-        pspace = self.paramvals[0]
+        pspace = self.p_space[0]
         xnames = [x.name for x in self.x]
         xharm = [f'{x.name}_n' for x in self.x]
         cols = xnames+xharm+['eig_re','eig_im',self.p[0].name]
         pftables = pandas.DataFrame(columns=cols)
         for indi, ival in enumerate(pspace):
-            self.peval = [ival]
+            self.p_value = [ival]
             self.find_pss()
             self.calc_eigs()
             for xi in range(len(self.eigred)):
@@ -934,7 +928,7 @@ class HSS:
         #xidxs = np.arange(len(self.paramvals[0]))
         yidxs = self.damps.argmin(axis=0)
 
-        colvals = [self.paramvals[1][i] for i in yidxs]
+        colvals = [self.p_space[1][i] for i in yidxs]
         #dampvals = [self.damps[i, j] for i, j in zip(xidxs, yidxs)]
         # Print trace of highest damping
         #ax.plot(self.paramvals[0], np.asarray(colvals),linewidth=3)
@@ -1054,6 +1048,7 @@ class MidcolHTM:
             ax.grid(visible=True)
         ax.legend()
         return axs
+
 
 class SISOeq:
     def __init__(self, freqs, hsiso):
