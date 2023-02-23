@@ -298,11 +298,11 @@ def compare_with_chirp():
     pfs = hss_sys.pf_filtered()
     import matplotlib.pyplot as plt
     #fig, axs = plt.subplots(2, sharex=True)
-    hss_sys.toepBCD()
+    hss_sys.toep_BCD()
     lpsys = Lowpass()
     lpsys.find_pss()
     hss_sys.calc_eigs()
-    lpsys.toepBCD()
+    lpsys.toep_BCD()
 
     freqs = np.linspace(0,250,1000, endpoint=False)
     #freqs = np.append(-np.flip(freqs),freqs)

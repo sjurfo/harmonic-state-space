@@ -148,7 +148,7 @@ class dVOC_1ph(HSS):
 
 
     def plotpss(self):
-        ax = super().plotstates()
+        ax = super().plot_states()
         va = self.xt[1,:]
         vb = self.xt[2,:]
         ia = self.xt[3,:]
@@ -279,7 +279,7 @@ class dVOC_1ph_dq(HSS):
         self.D = Matrix(self.y).jacobian(self.u)
 
     def plotpss(self):
-        ax = super().plotstates()
+        ax = super().plot_states()
         vd = self.xt[1,:]
         vq = self.xt[2,:]
         ya = self.xt[3,:]
@@ -425,7 +425,7 @@ class dVOC_1ph_dq_LCL(HSS):
         self.D = Matrix(self.y).jacobian(self.u)
 
     def plotpss(self):
-        ax = super().plotstates()
+        ax = super().plot_states()
         vd = self.xt[1,:]
         vq = self.xt[2,:]
         ya = self.xt[3,:]
@@ -619,7 +619,7 @@ class dVOC_Statcom(HSS):
         self.D = Matrix(self.y).jacobian(self.u)
 
     def plotpss(self):
-        ax = super().plotstates()
+        ax = super().plot_states()
 
         vd = self.xt[3,:]
         vq = self.xt[4,:]
@@ -798,7 +798,7 @@ class dVOC_Statcom_Tsukuba(HSS):
         self.D = Matrix(self.y).jacobian(self.u)
 
     def plotpss(self):
-        ax = super().plotstates()
+        ax = super().plot_states()
 
         vd = self.xt[1,:]
         vq = self.xt[2,:]
@@ -979,7 +979,7 @@ class dVOC_Statcom_Tsukuba_orig(HSS):
         self.D = Matrix(self.y).jacobian(self.u)
 
     def plotpss(self):
-        ax = super().plotstates()
+        ax = super().plot_states()
 
         vd = self.xt[1,:]
         vq = self.xt[2,:]
@@ -1166,7 +1166,7 @@ class dVOC_Statcom_Tsukuba_mod(HSS):
         self.D = Matrix(self.y).jacobian(self.u)
 
     def plotpss(self):
-        ax = super().plotstates()
+        ax = super().plot_states()
 
         vd = self.xt[1,:]
         vq = self.xt[2,:]
@@ -1342,7 +1342,7 @@ class dVOC_GridCon_Tsukuba(HSS):
         self.D = Matrix(self.y).jacobian(self.u)
 
     def plotpss(self):
-        ax = super().plotstates()
+        ax = super().plot_states()
 
         vd = self.xt[3,:]
         vq = self.xt[4,:]
@@ -1480,7 +1480,7 @@ class dVOC_Statcom_simple(HSS):
         self.D = Matrix(self.y).jacobian(self.u)
 
     def plotpss(self):
-        ax = super().plotstates()
+        ax = super().plot_states()
 
         vd = self.xt[3,:]
         vq = self.xt[4,:]
@@ -1685,7 +1685,7 @@ class dVOC_Statcom_vi(HSS):
         self.D = Matrix(self.y).jacobian(self.u)
 
     def plotpss(self):
-        ax = super().plotstates()
+        ax = super().plot_states()
 
         vd = self.xt[1,:]
         vq = self.xt[2,:]
@@ -1847,7 +1847,7 @@ class dVOC_Tsukuba(HSS):
         self.D = Matrix(self.y).jacobian(self.u)
 
     def plotpss(self):
-        ax = super().plotstates()
+        ax = super().plot_states()
 
         vd = self.xt[3,:]
         vq = self.xt[4,:]
