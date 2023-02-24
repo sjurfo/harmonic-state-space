@@ -30,8 +30,8 @@ class SogiPll(HSS):
         kp = 2 * a_pll
         ki = 2 * a_pll ** 2
         th_pll = xd + self.w0 * self.t
-        ffp1 = False  # Integrator is before multiplication with omega
-        ffp2 = False  # Integrator is before multiplication with omega
+        ffp1 = True  # Integrator is before multiplication with omega
+        ffp2 = True  # Integrator is before multiplication with omega
         # TODO: support for algebraic loops (in a DAE framework)
         # Solve loop symbolically
         wpll = symbols('wpll')
@@ -108,7 +108,7 @@ class SogiFll(HSS):
 
         # Different frequency feedback paths
         ffp1 = False  # Integrator is before multiplication with omega (in-phase path)
-        ffp2 = False  # Integrator is before multiplication with omega (in-quadrature path)
+        ffp2 = True  # Integrator is before multiplication with omega (in-quadrature path)
 
         u_alpha = xa
         xa0 = cos(self.w0 * self.t)
@@ -153,7 +153,8 @@ ax.set_xticks([0, 2, 5])
 ax.set_yticks([0, 50, 100,150])
 ax.set_zticks([-200,-100,0])
 ax.tick_params(labelsize=12)
-
+ax.view_init(10,120)
 import matplotlib.pyplot as plt
-plt.savefig("sogi_fll_t2.svg", bbox_inches="tight",
+plt.savefig("sogi_fll_01.svg", bbox_inches="tight",
             pad_inches=0.3, transparent=True, format='svg', dpi=600)
+

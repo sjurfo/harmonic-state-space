@@ -383,10 +383,9 @@ class ParametricSweep:
         X = modal_props.XYmesh[0]
         Y = modal_props.XYmesh[1]
         Z = modal_props.damps
-        surf = ax.plot_surface(X, Y, Z, alpha=0.5, cmap=cm.viridis,
-                               linewidth=0, antialiased=False)
-
-        cset = ax.contour(X, Y, Z, zdir='z', offset=offset, cmap=cm.viridis)
+        surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.coolwarm)
+        ax.plot_wireframe(X, Y, Z, rstride=2, cstride=2, alpha = 0.25, color='k')# cmap=cm.Greys)
+        #cset = ax.contour(X, Y, Z, zdir='z', offset=offset, cmap=cm.coolwarm)
 
         ax.set_xlabel(self.model.p[0])
         ax.set_ylabel(self.model.p[1])
