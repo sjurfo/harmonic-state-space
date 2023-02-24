@@ -376,15 +376,21 @@ class ParametricSweep:
 
         return ax
 
-    def plot_parametric_study3d(self, ax=None):
+    def plot_parametric_study3d(self, ax=None, offset=0):
         modal_props = self.model.pss.modal_props
         if not ax:
             fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
         X = modal_props.XYmesh[0]
         Y = modal_props.XYmesh[1]
-        surf = ax.plot_surface(X, Y, modal_props.damps, cmap=cm.viridis,
+        Z = modal_props.damps
+        surf = ax.plot_surface(X, Y, Z, alpha=0.5, cmap=cm.viridis,
                                linewidth=0, antialiased=False)
+
+        cset = ax.contour(X, Y, Z, zdir='z', offset=offset, cmap=cm.viridis)
+
         ax.set_xlabel(self.model.p[0])
         ax.set_ylabel(self.model.p[1])
+        ax.set_zlabel(r'$Re[\lambda]$')
+
         plt.show()
         return ax
