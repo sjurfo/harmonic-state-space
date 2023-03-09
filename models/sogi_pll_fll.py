@@ -108,7 +108,7 @@ class SogiFll(HSS):
 
         # Different frequency feedback paths
         ffp1 = False  # Integrator is before multiplication with omega (in-phase path)
-        ffp2 = True  # Integrator is before multiplication with omega (in-quadrature path)
+        ffp2 = False  # Integrator is before multiplication with omega (in-quadrature path)
 
         u_alpha = xa
         xa0 = cos(self.w0 * self.t)
@@ -144,17 +144,26 @@ sogi = SogiFll()
 sogi.find_pss()
 param_sweep = ParametricSweep(sogi)
 param_sweep.sweep([np.flip(np.linspace(0.2, 5, 30)), np.flip(np.linspace(20, 150, 30))])
-ax = param_sweep.plot_parametric_study3d(offset=-200)
-#param_sweep.plot_parametric_study2d()
+#ax = param_sweep.plot_parametric_study3d(offset=-200)
+import matplotlib.pyplot as plt
+from matplotlib import cm
+
+fig, ax = plt.subplots(1)
+levels = np.linspace(-200,0,21)
+
+contourf = param_sweep.weakest_damping_contourf(ax, levels=levels, extend='both', cmap=cm.coolwarm)
+param_sweep.weakest_damping_hatches(ax, levels=[-150, -20, 0, 1e10], colors='none', hatches=[None, '/', '++'])
+
+cbar = fig.colorbar(contourf, ticks=np.linspace(levels[0], levels[-1], 5))
+
 ax.set_xlabel(r'$k_{sog}$',fontsize=15)
 ax.set_ylabel(r'$\alpha_{fll}$',fontsize=15)
-ax.set_zlabel(r'$Re[\lambda]$',fontsize=15)
-ax.set_xticks([0, 2, 5])
-ax.set_yticks([0, 50, 100,150])
-ax.set_zticks([-200,-100,0])
+#ax.set_zlabel(r'$Re[\lambda]$',fontsize=15)
+ax.set_xticks([0.2, 2.5, 5])
+ax.set_yticks([20, 50, 100,150])
+#ax.set_zticks([-200,-100,0])
 ax.tick_params(labelsize=12)
-ax.view_init(10,120)
-import matplotlib.pyplot as plt
-plt.savefig("sogi_fll_01.svg", bbox_inches="tight",
+#ax.view_init(10,120)
+plt.savefig("sogi_fll_2d_00.svg", bbox_inches="tight",
             pad_inches=0.3, transparent=True, format='svg', dpi=600)
 

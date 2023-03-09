@@ -346,6 +346,26 @@ class ParametricSweep:
         fig.canvas.mpl_connect('axes_leave_event', leave_axes)
         plt.show()
 
+    def weakest_damping_contourf(self, ax, hatches=None, **kwargs):
+        modal_props = self.model.pss.modal_props
+
+        X = modal_props.XYmesh[0]
+        Y = modal_props.XYmesh[1]
+
+        contourf_ = ax.contourf(X, Y, modal_props.damps, **kwargs)
+        ax.set_xlabel(self.model.p[0])
+        ax.set_ylabel(self.model.p[1])
+
+        return contourf_
+
+    def weakest_damping_hatches(self, ax, **kwargs):
+        modal_props = self.model.pss.modal_props
+
+        X = modal_props.XYmesh[0]
+        Y = modal_props.XYmesh[1]
+
+        ax.contourf(X, Y, modal_props.damps, **kwargs)
+
     def plot_parametric_study2d(self, fig=None, **kwargs):
         modal_props = self.model.pss.modal_props
         if not fig:
@@ -355,14 +375,21 @@ class ParametricSweep:
             #TODO get axis
         X = modal_props.XYmesh[0]
         Y = modal_props.XYmesh[1]
+
+        contourf_ = ax.contourf(X, Y, modal_props.damps, levels=levels, extend='both', cmap=cm.coolwarm)
+        cbar = fig.colorbar(contourf_, ticks=np.linspace(levels[0], levels[-1], 5))
         if 'levels' in kwargs:
             levels = kwargs['levels']
-            contourf_ = ax.contourf(X,Y,modal_props.damps, levels=levels,extend='max')
-            cbar = fig.colorbar(contourf_, ticks=np.linspace(levels[0], levels[-1], 4))
+            contourf_ = ax.contourf(X,Y,modal_props.damps, levels=levels,extend='both', cmap=cm.coolwarm)
+            cbar = fig.colorbar(contourf_, ticks=np.linspace(levels[0], levels[-1], 5))
 
         else:
-            contourf_ = ax.contourf(X, Y, modal_props.damps)
-            cbar = fig.colorbar(contourf_)
+            levels = np.linspace(-200,0, 21)
+            cbar_ticks = np.asarray(levels)
+            cbar_ticks[5] = None
+            contourf_ = ax.contourf(X, Y, modal_props.damps, levels, cmap=cm.coolwarm)
+            ax.contourf(X,Y,modal_props.damps, [-150,-50,1e10], colors='none', hatches=[None, '++'])
+            cbar = fig.colorbar(contourf_, ticks=np.append(cbar_ticks,50))
 
         ax.set_xlabel(self.model.p[0])
         ax.set_ylabel(self.model.p[1])
@@ -374,7 +401,7 @@ class ParametricSweep:
         #dampvals = [self.damps[i, j] for i, j in zip(xidxs, yidxs)]
         #ax.plot(self.paramvals[0], np.asarray(colvals),linewidth=3)
 
-        return ax
+        return ax, contourf_
 
     def plot_parametric_study3d(self, ax=None, offset=0):
         modal_props = self.model.pss.modal_props
