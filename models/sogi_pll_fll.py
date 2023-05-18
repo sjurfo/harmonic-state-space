@@ -147,8 +147,12 @@ class SogiFll(HSS):
 sogi = SogiPll()
 sogi.find_pss()
 param_sweep = ParametricSweep(sogi)
-param_sweep.sweep([np.flip(np.linspace(0.2, 5, 30)), np.flip(np.linspace(20, 150, 30))])
 
+##
+param_sweep.eigenloci(np.linspace(0.2, 5, 30))
+param_sweep.eigenloci_plot()
+##
+param_sweep.sweep([np.flip(np.linspace(0.2, 5, 30)), np.flip(np.linspace(20, 150, 30))])
 
 # plot 3d
 ax = param_sweep.plot_parametric_study3d(offset=-200)
@@ -169,8 +173,8 @@ levels = np.linspace(-200,0,21)
 
 contourf = param_sweep.weakest_damping_contourf(ax, levels=levels, extend='both', cmap=cm.coolwarm)
 param_sweep.weakest_damping_hatches(ax, levels=[-150, -20, 0, 1e10], colors='none', hatches=[None, '/', '++'])
-#cbar = fig.colorbar(contourf, ticks=np.linspace(levels[0], levels[-1], 5))
-#cbar.ax.tick_params(labelsize=20)
+cbar = fig.colorbar(contourf, ticks=np.linspace(levels[0], levels[-1], 5))
+cbar.ax.tick_params(labelsize=20)
 
 ax.set_xlabel(r'$k_{sog}$',fontsize=25)
 ax.set_ylabel(r'$\alpha_{fll}$',fontsize=25)

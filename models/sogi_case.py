@@ -5,6 +5,43 @@ from htf import HTF
 from parametric_studies import ParametricSweep
 
 
+class PLL(HSS):
+
+    def setup(self):
+        # States
+        xpll, xd = symbols('xpll xd')
+        self.x = [xpll, xd]
+
+        # Inputs
+        up = symbols('up')
+        self.u = [up]
+        self.u0 = [0 * self.t]
+
+        # Parameters
+        a_pll = symbols('a_pll')
+        self.p = [a_pll]
+        self.p_value = [60]
+
+        # Fixed Parameters
+
+        kp = 2 * a_pll
+        ki = 2 * a_pll ** 2
+        th_pll = xd + self.w0 * self.t
+
+        uq = up-th_pll
+
+        self.x0 = Matrix([0, 0])
+
+        # Differential equations independent of FFP
+        fpll = ki * uq
+        fd = xpll + kp * uq
+
+        self.f = [fpll, fd]
+
+        # Outputs
+        self.y = [xd]
+
+
 class SogiPllT2(HSS):
 
     def setup(self):
@@ -45,6 +82,14 @@ class SogiPllT2(HSS):
 
         # Outputs
         self.y = [xd]
+
+
+pll = PLL()
+pll.find_pss()
+param_sweep = ParametricSweep(pll)
+param_sweep.eigenloci(np.linspace(20,150,30))
+param_sweep.eigenloci_plot()
+
 
 
 sogi = SogiPllT2()

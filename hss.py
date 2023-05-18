@@ -94,7 +94,7 @@ class HSS:
         Finds the PSS through the AMG method.
 
         This method is based on a translated version written for the publication [1]
-        [1] An automated method
+        [1] An Integrated Method for Generating VSCs’ Periodical Steady-State Conditions and HSS-Based Impedance Model
         """
         err = 100
         u_inp = [self.pss.t_arr] + self.p_value
@@ -107,10 +107,6 @@ class HSS:
 
         for i in range(10):
 
-            # Calculate xt from fft coeffs
-            cx = np.reshape(self.pss.cx,(self.Nx,-1),'F')  # Reshape to 2-D format
-            self.pss.xt = np.real(self.inv_dft(cx))
-
             self.calc_td()  # Calc f and A in time domain
 
             # Calculate fourier coefficients
@@ -122,30 +118,37 @@ class HSS:
             self.pss.cf = cf.ravel('F')
             tol = 1e-10
 
-            # Iteration equation
-            lhs = self.pss.Nblk - self.pss.toeA
+            # RHS of frequency domain iteration equation
             rhs = self.pss.cf - np.dot(self.pss.Nblk, self.pss.cx)
-            lhs_sp = csc_matrix(lhs)
-            # Iteration step
-            dx = spsolve(lhs_sp, rhs)
-            dx2 = np.reshape(np.copy(dx), (self.Nx,-1), 'F')
-            dx2[:,-1:-self.N-1:-1] = np.conj(dx2[:,0:self.N])
-            dx2 = dx2.ravel('F')
-            self.pss.cx += dx2
 
             # Check for convergence
-            err_i = np.sqrt(np.dot(dx2, dx2))
+            err_i = np.sqrt(np.dot(rhs, rhs))
+
             if abs(err_i) < tol:
-                print('Converged after {} iterations, err: {:.2e}'.format(i + 1, abs(err_i)))
+                print('Converged in the {}\'th iteration, err: {:.2e}'.format(i+1, abs(err_i)))
                 break
+
             elif abs(err_i) > abs(err)*10:
                 # In case of divergence
                 self.calc_modal_props()
                 print('Weakest mode damping: {}'.format(self.pss.modal_props.weak_damp))
-                raise RuntimeError('Diverging after {} iterations, err : {:.2e}'.format(i+1, abs(err_i)))
+                raise RuntimeError('Diverging in the {}\'th iteration, err : {:.2e}'.format(i+1, abs(err_i)))
+
             else:
+                # Continue iteration
                 print('Err: {:.2e}'.format(abs(err_i)))
                 err = err_i
+                lhs = self.pss.Nblk - self.pss.toeA
+                lhs_sp = csc_matrix(lhs)
+                # Iteration step
+                dx = spsolve(lhs_sp, rhs)
+                dx2 = np.reshape(np.copy(dx), (self.Nx, -1), 'F')
+                dx2[:, -1:-self.N - 1:-1] = np.conj(dx2[:, 0:self.N])
+                dx2 = dx2.ravel('F')
+                self.pss.cx += dx2
+                # Calculate xt from fft coeffs
+                cx = np.reshape(self.pss.cx, (self.Nx, -1), 'F')  # Reshape to 2-D format
+                self.pss.xt = np.real(self.inv_dft(cx))
 
     def dft(self, xin):
         """Computes the DFT for the given harmonic order"""
@@ -279,6 +282,8 @@ class HSS:
         eigs, rev = eig(self.pss.toeA - self.pss.Nblk)
         lev = np.linalg.inv(rev)
 
+        self.pss.modal_props.eigs = eigs
+
         # Modes in the fundamental strip
         trc_inds = np.abs(np.imag(eigs)) <= (self.N-1)*self.w0
         self.pss.modal_props.eig_fstrip = eigs[trc_inds]
@@ -367,7 +372,7 @@ class PSS:
 
 
 class ModalProps:
-    """Dataclass for the modal properties of a Periodic Steady State"""
+    """Dataclass for the modal properties of a HSS"""
     def __init__(self):
         # Modal analysis
         self.eig_fstrip = []
