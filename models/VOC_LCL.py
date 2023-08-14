@@ -211,21 +211,6 @@ class dVOC_1ph_dq_LCL(HSS):
         self.C = Matrix(self.y).jacobian(self.x)
         self.D = Matrix(self.y).jacobian(self.u)
 
-    def plotpss(self):
-        ax = super().plot_states()
-        vd = self.xt[1,:]
-        vq = self.xt[2,:]
-        ya = self.xt[3,:]
-        yb = self.xt[4,:]
-        yd = ya * np.cos(self.w0 * self.t_arr) + yb * np.sin(self.w0 * self.t_arr)
-        yq = -ya * np.sin(self.w0 * self.t_arr) + yb * np.cos(self.w0 * self.t_arr)
-        p = vd*yd+vq*yq
-        q = -vd*yq+vq*yd
-        ax.plot(self.t_arr, p,label='p')
-        ax.plot(self.t_arr, q,label='q')
-        plt.legend()
-        self.cx2 = self.dft_reduced(self.xt)
-
 
 voc = dVOC_1ph_dq_LCL()
 voc.find_pss()
@@ -237,7 +222,7 @@ ax = fig.subplots()
 
 eigs= voc.pss.modal_props.eigs
 ax.scatter(np.real(eigs), np.imag(eigs),marker='x', color='k', alpha=0.5, linewidths=0.5, s = 9)
-eig_filt = voc.pss.modal_props.eig_filt
+eig_filt = voc.pss.modal_props.eig_x0
 ax.plot(np.real(eig_filt), np.imag(eig_filt),'s', fillstyle='none', color='k', markersize=3)
 
 plt.xlabel('Real', fontsize=10)

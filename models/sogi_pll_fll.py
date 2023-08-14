@@ -143,19 +143,19 @@ class SogiFll(HSS):
         self.y = [w_fll]
 
 
-# Declare model and do parametric sweep
+# Declare model and parametric sweep
 sogi = SogiPll()
-sogi.find_pss()
 param_sweep = ParametricSweep(sogi)
 
-##
+## Eigenloci
 param_sweep.eigenloci(np.linspace(0.2, 5, 30))
 param_sweep.eigenloci_plot()
-##
+
+## 2-D parametric sweep
 param_sweep.sweep([np.flip(np.linspace(0.2, 5, 30)), np.flip(np.linspace(20, 150, 30))])
 
 # plot 3d
-ax = param_sweep.plot_parametric_study3d(offset=-200)
+ax = param_sweep.weakest_damping_3d(offset=-200)
 ax.set_xlabel(r'$k_{sog}$',fontsize=20)
 ax.set_ylabel(r'$\alpha_{fll}$',fontsize=20, labelpad=15)
 ax.set_zlabel(r'$Re[\lambda]$',fontsize=20, labelpad=15)
@@ -167,12 +167,12 @@ ax.view_init(20,120)
 plt.savefig("sogi_pll_3d_00.svg", bbox_inches="tight",
             pad_inches=0.0, transparent=True, format='svg', dpi=600)
 
-
+# plot 2-D contour
 fig, ax = plt.subplots(1)
 levels = np.linspace(-200,0,21)
 
 contourf = param_sweep.weakest_damping_contourf(ax, levels=levels, extend='both', cmap=cm.coolwarm)
-param_sweep.weakest_damping_hatches(ax, levels=[-150, -20, 0, 1e10], colors='none', hatches=[None, '/', '++'])
+param_sweep.weakest_damping_contourf(ax, levels=[-150, -20, 0, 1e10], colors='none', hatches=[None, '/', '++'])
 cbar = fig.colorbar(contourf, ticks=np.linspace(levels[0], levels[-1], 5))
 cbar.ax.tick_params(labelsize=20)
 

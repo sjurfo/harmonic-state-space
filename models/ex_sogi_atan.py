@@ -1,17 +1,16 @@
-import numpy as np
+import matplotlib.pyplot as plt
 from sympy import symbols, cos, sin, atan2, Matrix
 from hss import HSS
-from htf import HTF
-from parametric_studies import ParametricSweep
 
 
-class SOGI_atan(HSS):
+class SogiAtan(HSS):
 
     def setup(self):
         # States
         ua, ub = symbols('ua ub')
         self.x = [ua, ub]
-        self.x0 = Matrix([cos(self.w0 * self.t), sin(self.w0 * self.t)])
+        self.x0 = Matrix([cos(self.w0 * self.t),
+                          cos(self.w0 * self.t)])
 
         # Inputs
         dtheta = symbols('dtheta')
@@ -19,20 +18,16 @@ class SOGI_atan(HSS):
         self.u0 = [0 * self.t]
 
         # Parameters
-        ksog = symbols('ksog')
-        self.p = [ksog]
-        self.p_value = [2]
-
-        # Fixed Parameters
-        # Uncomment the following line to overwrite fundamental frequency
-        # self.w0 = 100*np.pi
+        k_sogi = symbols('k_sogi')
+        self.p = [k_sogi]
+        self.p_value = [1.414]
 
         # Algebraic equations
         ug = cos(self.w0 * self.t + dtheta)
         th = atan2(ub,ua)
 
         # Differential equations
-        fa = ksog * (ug - ua) * self.w0 - ub * self.w0
+        fa = self.w0*(k_sogi * (ug - ua) - ub)
         fb = ua * self.w0
         self.f = [fa, fb]
 
@@ -40,5 +35,12 @@ class SOGI_atan(HSS):
         self.y = [th]
 
 
-sogi = SOGI_atan(N=1)
+sogi = SogiAtan(N=3)
 sogi.find_pss()
+
+#import numpy as np
+#from parametric_studies import ParametricSweep
+
+#sweep = ParametricSweep(sogi)
+#sweep.eigenloci(np.linspace(0.5,2.5,21))
+#sweep.eigenloci_plot()

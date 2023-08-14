@@ -96,7 +96,7 @@ sogi = SogiPllT2()
 sogi.find_pss()
 param_sweep = ParametricSweep(sogi)
 param_sweep.sweep([np.linspace(0.2,5,30), np.linspace(20,150,30)])
-param_sweep.plot_parametric_study3d()
+param_sweep.weakest_damping_3d()
 
 
 pll = SogiPllT2()

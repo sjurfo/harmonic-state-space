@@ -22,14 +22,6 @@ class ParametricSweep:
         # Table of eigenvalues and participation factors for eigenloci
         self.modal_table = pd.DataFrame
 
-    def sweep(self, pspace):
-        if len(pspace) == 1:
-            self.eigenloci(pspace)
-        elif len(pspace) == 2:
-            self.two_param_sweep(pspace)
-        else:
-            raise NotImplementedError('Sweep must be for 1 or 2 dimensions')
-
     def two_param_sweep(self, pspace):
         """
         Sweep two parameters and store the weakest damping
@@ -46,7 +38,9 @@ class ParametricSweep:
             if len(pspace) > 1:
                 for idx_j, jval in enumerate(pspace[1]):
                     self.model.p_value = [ival, jval]
-                    self.model.find_pss()
+                    i, err = self.model.find_pss()
+                    print(f'\r ({self.model.p[0].name}:{ival:.3}) ({self.model.p[1].name}:{jval:.3}) Converged in iteration {i + 1}, err: {err:.2e}',
+                          end='')
                     self.model.calc_modal_props()
                     damps[idx_i,idx_j] = modal_props.weak_damp
         modal_props.XYmesh = np.meshgrid(pspace[0], pspace[1])
@@ -63,15 +57,16 @@ class ParametricSweep:
 
         xnames = [x.name for x in self.model.x]
         xharm = [f'{x.name}_n' for x in self.model.x]
-        cols = xnames+xharm+['eig_re','eig_im',self.model.p[0].name]
+        cols = xnames+xharm+['eig_re','eig_im',self.model.p[p_idx].name]
         modal_table = pd.DataFrame(columns=cols)
         for indi, ival in enumerate(pspace):
             self.model.p_value[p_idx] = ival
-            self.model.find_pss()
+            i, err = self.model.find_pss()
+            print(f'\r ({self.model.p[p_idx].name}:{ival}) Converged in iteration {i+1}, err: {err:.2e}', end='')
             self.model.calc_modal_props()
-            for xi in range(len(modal_props.eig_filt)):
-                pfs_i = modal_props.pf_filt[:,xi].tolist()+modal_props.npf[:,xi].tolist()+\
-                        [modal_props.eig_filt[xi].real]+[modal_props.eig_filt[xi].imag]+[ival]
+            for xi in range(len(modal_props.eig_x0)):
+                pfs_i = modal_props.pf_x0[:, xi].tolist() + modal_props.npf[:, xi].tolist() + \
+                        [modal_props.eig_x0[xi].real] + [modal_props.eig_x0[xi].imag] + [ival]
                 modal_table.loc[len(modal_table)] = pfs_i
 
         modal_table[xharm] = modal_table[xharm].astype(int)
@@ -225,11 +220,11 @@ class ParametricSweep:
                                        (2, 1.9), (2, 1.7)])}
 
         # define figure
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4), gridspec_kw={'width_ratios': [2, 1]}, facecolor='#393939')
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4), gridspec_kw={'width_ratios': [2, 1]}, facecolor='floralwhite')
         ax1.tick_params(axis='both')  #, colors='w'
         cmap = plt.get_cmap("cividis")
         ax1.set_title(f'Parametric eigenvalue study of a {self.__class__.__name__}\n '
-                      f'{param_name} swept from {paramvals[0]:.2g} to {paramvals[-1]:.2f}', color='w')
+                      f'{param_name} swept from {paramvals[0]:.2g} to {paramvals[-1]:.2f}', color='k')
 
         # scatter plot
         sc = ax1.scatter(x, y)
@@ -238,8 +233,8 @@ class ParametricSweep:
         sc.set_norm(plt.Normalize(np.nanmin(values), np.nan_to_num(values).max()))
         sc.set_array(values)
         sc.set_cmap(cmap)
-        ax1.set_xlabel('Real [rad/s]', color='w')
-        ax1.set_ylabel('Imag [Hz]', color='w')
+        ax1.set_xlabel('Real [rad/s]', color='k')
+        ax1.set_ylabel('Imag [Hz]', color='k')
 
         # axis 2 ticks and limits
         ax2.set_xticks([])
@@ -346,7 +341,7 @@ class ParametricSweep:
         fig.canvas.mpl_connect('axes_leave_event', leave_axes)
         plt.show()
 
-    def weakest_damping_contourf(self, ax, hatches=None, **kwargs):
+    def weakest_damping_contourf(self, ax, **kwargs):
         modal_props = self.model.pss.modal_props
 
         X = modal_props.XYmesh[0]
@@ -358,52 +353,7 @@ class ParametricSweep:
 
         return contourf_
 
-    def weakest_damping_hatches(self, ax, **kwargs):
-        modal_props = self.model.pss.modal_props
-
-        X = modal_props.XYmesh[0]
-        Y = modal_props.XYmesh[1]
-
-        ax.contourf(X, Y, modal_props.damps, **kwargs)
-
-    def plot_parametric_study2d(self, fig=None, **kwargs):
-        modal_props = self.model.pss.modal_props
-        if not fig:
-            fig, ax = plt.subplots()
-        else:
-            pass
-            #TODO get axis
-        X = modal_props.XYmesh[0]
-        Y = modal_props.XYmesh[1]
-
-        contourf_ = ax.contourf(X, Y, modal_props.damps, levels=levels, extend='both', cmap=cm.coolwarm)
-        cbar = fig.colorbar(contourf_, ticks=np.linspace(levels[0], levels[-1], 5))
-        if 'levels' in kwargs:
-            levels = kwargs['levels']
-            contourf_ = ax.contourf(X,Y,modal_props.damps, levels=levels,extend='both', cmap=cm.coolwarm)
-            cbar = fig.colorbar(contourf_, ticks=np.linspace(levels[0], levels[-1], 5))
-
-        else:
-            levels = np.linspace(-200,0, 21)
-            cbar_ticks = np.asarray(levels)
-            cbar_ticks[5] = None
-            contourf_ = ax.contourf(X, Y, modal_props.damps, levels, cmap=cm.coolwarm)
-            ax.contourf(X,Y,modal_props.damps, [-150,-50,1e10], colors='none', hatches=[None, '++'])
-            cbar = fig.colorbar(contourf_, ticks=np.append(cbar_ticks,50))
-
-        ax.set_xlabel(self.model.p[0])
-        ax.set_ylabel(self.model.p[1])
-
-        # Print trace of highest damping
-        #xidxs = np.arange(len(self.paramvals[0]))
-        #yidxs = modal_props.damps.argmin(axis=0)
-        #colvals = [self.p_space[1][i] for i in yidxs]
-        #dampvals = [self.damps[i, j] for i, j in zip(xidxs, yidxs)]
-        #ax.plot(self.paramvals[0], np.asarray(colvals),linewidth=3)
-
-        return ax, contourf_
-
-    def plot_parametric_study3d(self, ax=None, offset=0):
+    def weakest_damping_3d(self, ax=None, offset=0):
         modal_props = self.model.pss.modal_props
         if not ax:
             fig, ax = plt.subplots(subplot_kw={"projection": "3d"})

@@ -34,7 +34,7 @@ class HSS:
         self.u0 = []    # Input expression
         self.setup()    # Set the above attributes
 
-        # Linearised state matrices
+        # Symbolic Jacobian matrices
         self.A = Matrix(self.f).jacobian(self.x)  # State matrix
         self.B = Matrix(self.f).jacobian(self.u)  # State input matrix
         self.C = Matrix(self.y).jacobian(self.x)  # State output matrix
@@ -56,9 +56,12 @@ class HSS:
         self.f_lam = [lambdify(var_lst, i, 'numpy') for i in self.f]
         self.x_lam = [lambdify(self.t, i, 'numpy') for i in self.x0]
         self.u_lam = [lambdify([self.t]+self.p, i, 'numpy') for i in self.u0]
-        #self.toe_l = None
 
-        # Setting up symbolic toeplitz matrix (only way to construct toeplitz matrix of matrices)
+        # Lambdify for ivp scipy solver
+        f = [i.subs(zip(self.u+self.p, self.u0+self.p_value)) for i in self.f]
+        self.f_lam_ivp = lambdify((self.t, self.x), f)
+
+        # Setting up symbolic toeplitz matrix (crude way to construct toeplitz matrix of matrices)
         Tps = symbols('Tp0:{}'.format(2 * self.N + 1))
         Tns = symbols('Tn0:{}'.format(2 * self.N + 1))
         Toep = Matrix(toeplitz(Tps, Tns))
@@ -96,7 +99,7 @@ class HSS:
         This method is based on a translated version written for the publication [1]
         [1] An Integrated Method for Generating VSCs’ Periodical Steady-State Conditions and HSS-Based Impedance Model
         """
-        err = 100
+        err = 1e10
         u_inp = [self.pss.t_arr] + self.p_value
         for ind, ui in enumerate(self.u_lam):
             y = ui(*u_inp)
@@ -105,7 +108,7 @@ class HSS:
             else:
                 self.pss.ut[ind, :] = np.ones(self.pss.Nt) * y
 
-        for i in range(10):
+        for i in range(20):
 
             self.calc_td()  # Calc f and A in time domain
 
@@ -125,8 +128,10 @@ class HSS:
             err_i = np.sqrt(np.dot(rhs, rhs))
 
             if abs(err_i) < tol:
-                print('Converged in the {}\'th iteration, err: {:.2e}'.format(i+1, abs(err_i)))
-                break
+
+                #print(f'\rConverged in iteration {i+1}, err: {abs(err_i):.2e}', end='')
+                return (i, abs(err_i))
+                #break
 
             elif abs(err_i) > abs(err)*10:
                 # In case of divergence
@@ -136,7 +141,7 @@ class HSS:
 
             else:
                 # Continue iteration
-                print('Err: {:.2e}'.format(abs(err_i)))
+                #print(f'\rErr: {abs(err_i):.2e}', end="")
                 err = err_i
                 lhs = self.pss.Nblk - self.pss.toeA
                 lhs_sp = csc_matrix(lhs)
@@ -149,7 +154,7 @@ class HSS:
                 # Calculate xt from fft coeffs
                 cx = np.reshape(self.pss.cx, (self.Nx, -1), 'F')  # Reshape to 2-D format
                 self.pss.xt = np.real(self.inv_dft(cx))
-
+        raise RuntimeError('Reached maximum number of iterations')
     def dft(self, xin):
         """Computes the DFT for the given harmonic order"""
         return np.dot(xin, np.transpose(self.pss.exp_arr)) / self.pss.Nt
@@ -162,25 +167,28 @@ class HSS:
         """
         Computes the time domain arrays for f and A
         """
+
+        # Construct time domain arrays for vars_t = [x t u p]
         self.pss.vars_t = [self.pss.xt[i, :] for i in range(self.Nx)]
         self.pss.vars_t.append(self.pss.t_arr)  # append time domain
         u_inp = [self.pss.ut[i, :] for i in range(self.Nu)]
         self.pss.vars_t += u_inp
         self.pss.vars_t += self.p_value
 
+        # Compute state derivatives f in time domain
         for ind, f_i in enumerate(self.f_lam):
             y = f_i(*self.pss.vars_t)
             if type(y) == np.ndarray:
-                if np.max(np.imag(y)) > 1e-1:
-                    print('Something wrong with idft, max imag = {}'.format(np.max(np.imag(y))))
-                    plt.plot(self.pss.t_arr,np.imag(self.pss.xt[0,:]))
-                    plt.show()
+                #if np.max(np.imag(y)) > 1e-1:
+                #    print('Something wrong with idft, max imag = {}'.format(np.max(np.imag(y))))
+                #    plt.plot(self.pss.t_arr,np.imag(self.pss.xt[0,:]))
+                #    plt.show()
 
                 self.pss.ft[ind,:] = np.real(y)
-            else:
+            else: # If f_i contains no symbolic elements
                 self.pss.ft[ind, :] = np.ones(self.pss.Nt) * y
 
-        # Calculate At here as well
+        # Compute A in time domain
         for ind, A_i in enumerate(self.A_lam):
             y = A_i(*self.pss.vars_t)
             if type(y) == np.ndarray:
@@ -274,55 +282,42 @@ class HSS:
         """Computes the modal properties for the current PSS"""
 
         # Recompute the Toeplitz A matrix for the current PSS
-        cx = np.reshape(self.pss.cx, (self.Nx, -1), 'F')  # Reshape to 2-D format
-        self.pss.xt = np.real(self.inv_dft(cx))
-        self.calc_td()
+        #cx = np.reshape(self.pss.cx, (self.Nx, -1), 'F')  # Reshape to 2-D format
+        #self.pss.xt = np.real(self.inv_dft(cx))
+        #self.calc_td()
 
         # Compute eigenvalues and vectors of the HSS
         eigs, rev = eig(self.pss.toeA - self.pss.Nblk)
-        lev = np.linalg.inv(rev)
-
         self.pss.modal_props.eigs = eigs
-
+        lev = np.linalg.inv(rev)
         # Modes in the fundamental strip
-        trc_inds = np.abs(np.imag(eigs)) <= (self.N-1)*self.w0
+        trc_inds = np.abs(np.imag(eigs)) <= 0.5*self.w0
         self.pss.modal_props.eig_fstrip = eigs[trc_inds]
-        self.pss.modal_props.weak_damp = np.max(np.real(self.pss.modal_props.eig_fstrip))
 
         # Modes with high participation from zero-shift states
         p_f = np.multiply(lev.T, rev)
-        self.pss.modal_props.p_f = np.abs(p_f) / np.abs(p_f).max(axis=0)
-        pf_n0 = self.pss.modal_props.p_f[self.N*self.Nx:self.N*self.Nx+self.Nx]
+        p_f = np.abs(p_f) / np.abs(p_f).max(axis=0)
+        pf_n0 = p_f[self.N*self.Nx:self.N*self.Nx+self.Nx]
         col_idxs = np.where(pf_n0 > 0.9999999999)[1]
         col_idxs = np.unique(col_idxs)
-        self.pss.modal_props.pf_filt = pf_n0[:,col_idxs]
-        self.pss.modal_props.eig_filt = eigs[col_idxs]
+        self.pss.modal_props.pf_x0 = pf_n0[:, col_idxs]
+        self.pss.modal_props.eig_x0 = eigs[col_idxs]
+        self.pss.modal_props.weak_damp = np.max(np.real(self.pss.modal_props.eig_x0))
         self.pss.modal_props.npf = np.zeros((self.Nx, len(col_idxs)), dtype=np.int8)
-
         for i in range(self.Nx):
-            rowidxs = np.argmax(self.pss.modal_props.p_f[i::self.Nx, col_idxs],axis=0)
-            self.pss.modal_props.pf_filt[i, :] = self.pss.modal_props.p_f[rowidxs*self.Nx+i, col_idxs]
-            self.pss.modal_props.npf[i,:] = rowidxs-self.N
-
-    def plot_states(self):
-        """Plots the states in time domain"""
-        ax = plt.subplot()
-
-        self.calc_td()
-        for ind, xx in enumerate(self.pss.xt):
-            ax.plot(self.pss.t_arr, xx, label='{}'.format(self.x[ind]))
-        plt.legend()
-        return ax
-
+            rowidxs = np.argmax(p_f[i::self.Nx, col_idxs],axis=0)
+            self.pss.modal_props.pf_x0[i, :] = p_f[rowidxs * self.Nx + i, col_idxs]
+            self.pss.modal_props.npf[i, :] = rowidxs - self.N
 
 class PSS:
     """Dataclass for attributes associated with a Periodic Steady State"""
-    def __init__(self, hss_model, nt=1000):
+    def __init__(self, hss_model:HSS):
         """
 
         :param hss_model: The HSS model to which this PSS pertains
         :param n_t: Number of samples in time domain
         """
+        nt = hss_model.N
         self.model = hss_model
         self.modal_props = ModalProps()
         self.Nt = nt
@@ -370,17 +365,42 @@ class PSS:
         self.Nblk = np.diag(diags.ravel())                      # N block diagonal matrix
         self.exp_arr = None                                     # complex phasors for reduced DFT
 
+    def plot_states(self, ax):
+        """Plots the states in time domain"""
+
+        self.model.calc_td()
+        for ind, xx in enumerate(self.xt):
+            ax.plot(self.t_arr, xx, label='{}'.format(self.model.x[ind]))
+        plt.legend()
+        return ax
+
 
 class ModalProps:
     """Dataclass for the modal properties of a HSS"""
     def __init__(self):
         # Modal analysis
-        self.eig_fstrip = []
-        self.eig_filt = []
-        self.pf_filt = np.empty(0)
+        self.eigs = [] # All frequency-shifted eigenvalues
+        self.eig_fstrip = []  # In the fundamental strip
+        self.eig_x0 = []  # Highest participation in the 0-shift states
+        self.pf_x0 = np.empty(0)
         self.p_f = []
         self.weak_damp = 0
-
+        self.npf = np.empty(0)
         # 2-param damping plot
         self.XYmesh = (None, None)
         self.damps = np.empty(0)
+
+    def plot_eigs(self, ax):
+        """
+        Plots the
+        :param ax:
+        :return:
+        """
+        ax.scatter(np.real(self.eigs), np.imag(self.eigs), marker='x', color='k', alpha=0.5, linewidths=0.5, s=9, label=r'All $\lambda$')
+        ax.plot(np.real(self.eig_x0), np.imag(self.eig_x0), 's', fillstyle='none', color='k', markersize=3, label=r'$\lambda_{x0}$')
+        ax.plot(np.real(self.eig_fstrip), np.imag(self.eig_fstrip), 'o', fillstyle='none', color='k', markersize=3, label=r'$\lambda_{fstrip}$')
+
+        plt.legend()
+        plt.xlabel('Real', fontsize=10)
+        plt.ylabel('Imag', fontsize=10)
+        ax.grid('on')
