@@ -368,5 +368,4 @@ class ParametricSweep:
         ax.set_ylabel(self.model.p[1])
         ax.set_zlabel(r'$Re[\lambda]$')
 
-        plt.show()
         return ax
