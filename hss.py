@@ -25,6 +25,7 @@ class HSS:
         # State space formulation
         self.x = []     # State variables
         self.f = []     # Differential equations
+        self.h = []     # Change of variable
         self.u = []     # Input vector
         self.y = []     # Output vector
         self.p = []     # Parameters (for parametric studies)
@@ -75,6 +76,15 @@ class HSS:
         """HSS models override this method"""
         pass
 
+    def change_of_variable(self):
+        # Change of variables
+        var_lst = self.x + [self.t] + self.u + self.p   # Inputs to f
+        if self.h:
+            self.H = Matrix(self.h).jacobian(self.x)  # State matrix
+            self.H_inv = self.H.inv()  # State matrix
+            self.H_lam = [lambdify(var_lst, i, 'numpy') for i in self.H]
+            self.H_inv_lam = [lambdify(var_lst, i, 'numpy') for i in self.H_inv]
+
     def calc_init(self):
         """
         Calculates initial time domain values for x and u from sympy expressions
@@ -83,12 +93,7 @@ class HSS:
         angles = np.outer(self.pss.Nvec, self.pss.t_arr)
         self.pss.exp_arr = np.exp(-1j * self.w0 * angles)
 
-        for ind, xtf in enumerate(self.x_lam):
-            y = xtf(self.pss.t_arr)
-            if type(y) == np.ndarray:
-                self.pss.xt[ind, :] = y
-            else:
-                self.pss.xt[ind, :] = np.ones(self.pss.Nt) * y
+        self.pss.xt = self.calc_lam_td(self.x_lam, [self.pss.t_arr])
         cx = self.dft(self.pss.xt)
         self.pss.cx = cx.ravel('F')
 
@@ -101,23 +106,18 @@ class HSS:
         """
         err = 1e10
         u_inp = [self.pss.t_arr] + self.p_value
-        for ind, ui in enumerate(self.u_lam):
-            y = ui(*u_inp)
-            if type(y) == np.ndarray:
-                self.pss.ut[ind, :] = y
-            else:
-                self.pss.ut[ind, :] = np.ones(self.pss.Nt) * y
-
+        self.pss.ut = self.calc_lam_td(self.u_lam, u_inp)
         for i in range(20):
-
-            self.calc_td()  # Calc f and A in time domain
+            self.calc_var_td()
+            self.pss.ft = self.calc_lam_td(self.f_lam, self.pss.vars_t)  # Calc f in time domain
+            self.pss.At = self.calc_lam_td(self.A_lam, self.pss.vars_t)  # Calc A in time domain
 
             # Calculate fourier coefficients
             cf = self.dft(self.pss.ft)
             self.pss.cA = self.dft(self.pss.At)
 
             # Reshaping - setup toeplitz A matrix and ravel f
-            self.toep_A()
+            self.pss.toeA = self.toeplitz_setup(self.pss.cA, (self.Nx, self.Nx))
             self.pss.cf = cf.ravel('F')
             tol = 1e-10
 
@@ -155,6 +155,7 @@ class HSS:
                 cx = np.reshape(self.pss.cx, (self.Nx, -1), 'F')  # Reshape to 2-D format
                 self.pss.xt = np.real(self.inv_dft(cx))
         raise RuntimeError('Reached maximum number of iterations')
+
     def dft(self, xin):
         """Computes the DFT for the given harmonic order"""
         return np.dot(xin, np.transpose(self.pss.exp_arr)) / self.pss.Nt
@@ -163,11 +164,7 @@ class HSS:
         """Computes the Inverse DFT for the given harmonic order"""
         return np.dot(cs, self.pss.exp_arr ** -1)
 
-    def calc_td(self):
-        """
-        Computes the time domain arrays for f and A
-        """
-
+    def calc_var_td(self):
         # Construct time domain arrays for vars_t = [x t u p]
         self.pss.vars_t = [self.pss.xt[i, :] for i in range(self.Nx)]
         self.pss.vars_t.append(self.pss.t_arr)  # append time domain
@@ -175,108 +172,59 @@ class HSS:
         self.pss.vars_t += u_inp
         self.pss.vars_t += self.p_value
 
+    def calc_lam_td(self, lamfun, vars_t):
+        """
+        Computes the time domain arrays for a lambdified function
+        """
+        fun_t = np.empty((len(lamfun), self.pss.Nt))
         # Compute state derivatives f in time domain
-        for ind, f_i in enumerate(self.f_lam):
-            y = f_i(*self.pss.vars_t)
+        for ind, f_i in enumerate(lamfun):
+            y = f_i(*vars_t)
             if type(y) == np.ndarray:
                 #if np.max(np.imag(y)) > 1e-1:
                 #    print('Something wrong with idft, max imag = {}'.format(np.max(np.imag(y))))
                 #    plt.plot(self.pss.t_arr,np.imag(self.pss.xt[0,:]))
                 #    plt.show()
 
-                self.pss.ft[ind,:] = np.real(y)
+                fun_t[ind,:] = np.real(y)
             else: # If f_i contains no symbolic elements
-                self.pss.ft[ind, :] = np.ones(self.pss.Nt) * y
+                fun_t[ind, :] = np.ones(self.pss.Nt) * y
+        return fun_t
 
-        # Compute A in time domain
-        for ind, A_i in enumerate(self.A_lam):
-            y = A_i(*self.pss.vars_t)
-            if type(y) == np.ndarray:
-                self.pss.At[ind,:] = np.real(y)
-            else:
-                self.pss.At[ind,:] = np.ones(self.pss.Nt) * np.real(y)
+    def toeplitz_setup(self, c, shp):
+        """Sets up a harmonic series Toeplitz matrix"""
+        nrows, ncols = shp
+        # Numeric values (arrays) for toeplitz elements
+        toe_pos = [c[:,i].reshape((nrows, ncols)) for i in range(self.N,2*self.N+1)]
+        toe_neg = [c[:,i].reshape((nrows, ncols)) for i in range(self.N,-1,-1)]
 
-    def toep_A(self):
-        """Computes the Toeplitz A matrix"""
-        # Numeric values (arrays) for toeplitz elements in state matrix A
-        toe_pos = [self.pss.cA[:,i].reshape((self.Nx, self.Nx)) for i in range(self.N,2*self.N+1)]
-        toe_neg = [self.pss.cA[:,i].reshape((self.Nx, self.Nx)) for i in range(self.N,-1,-1)]
-
-        toe_neg += [np.zeros((self.Nx, self.Nx))]*self.N
-        toe_pos += [np.zeros((self.Nx, self.Nx))] * self.N
+        toe_neg += [np.zeros((nrows, ncols))]*self.N
+        toe_pos += [np.zeros((nrows, ncols))] * self.N
 
         T = toe_pos+toe_neg
 
-        # Calculate toeplitz matrix and reshape to proper size (square Nx*(2N+1) matrix)
+        # Calculate toeplitz matrix and reshape to proper size
         # Correct reshape is not very intuitive
-
-        self.pss.toeA = self.toe_l(*T)
-        self.pss.toeA = np.reshape(np.transpose(self.pss.toeA, (0, 2, 1, 3)), (self.Nx * (2 * self.N + 1), -1))
+        toe = self.toe_l(*T)
+        toe = np.reshape(np.transpose(toe, (0, 2, 1, 3)), (nrows * (2 * self.N + 1), -1))
+        return toe
 
     def toep_BCD(self):
-        """Computes the Toeplitz B, C and D matrices"""
+        """
+        Computes the toeplitz matrices B, C and D
+        :return:
+        """
+        self.pss.Bt = self.calc_lam_td(self.B_lam, self.pss.vars_t)
+        self.pss.Ct = self.calc_lam_td(self.C_lam, self.pss.vars_t)
+        self.pss.Dt = self.calc_lam_td(self.D_lam, self.pss.vars_t)
 
-        # Calculate time domain array
-        for ind, xtB in enumerate(self.B_lam):
-            y = xtB(*self.pss.vars_t)
-            if type(y) == np.ndarray:
-                self.pss.Bt[ind, :] = np.real(y)
-            else:
-                self.pss.Bt[ind, :] = np.ones(self.pss.Nt) * np.real(y)
-
-        # Fourier coeffs
         self.pss.cB = self.dft(self.pss.Bt)
-
-        # Numeric values (arrays) for toeplitz elements in input matrix B
-        toe_pos = [self.pss.cB[:, i].reshape((self.Nx, self.Nu)) for i in range(self.N, 2 * self.N + 1)]
-        toe_neg = [self.pss.cB[:, i].reshape((self.Nx, self.Nu)) for i in range(self.N, -1, -1)]
-        toe_neg += [np.zeros((self.Nx, self.Nu))] * self.N
-        toe_pos += [np.zeros((self.Nx, self.Nu))] * self.N
-        T = toe_pos + toe_neg
-
-        # Calculate toeplitz matrix and reshape to proper size: Nx*(2N+1) X Nu*(2N+1)
-        self.pss.toeB = self.toe_l(*T)
-        self.pss.toeB = np.reshape(np.transpose(self.pss.toeB, (0, 2, 1, 3)), (self.Nx * (2 * self.N + 1), -1))
-
-        # Time domain values for C
-        for ind, xtC in enumerate(self.C_lam):
-            y = xtC(*self.pss.vars_t)
-            if type(y) == np.ndarray:
-                self.pss.Ct[ind, :] = np.real(y)
-            else:
-                self.pss.Ct[ind, :] = np.ones(self.pss.Nt) * np.real(y)
         self.pss.cC = self.dft(self.pss.Ct)
-
-        # Numeric values (arrays) for toeplitz elements in output matrix C
-        toe_pos = [self.pss.cC[:, i].reshape((self.Ny, self.Nx)) for i in range(self.N, 2 * self.N + 1)]
-        toe_neg = [self.pss.cC[:, i].reshape((self.Ny, self.Nx)) for i in range(self.N, -1, -1)]
-        toe_neg += [np.zeros((self.Ny, self.Nx))] * self.N
-        toe_pos += [np.zeros((self.Ny, self.Nx))] * self.N
-        T = toe_pos + toe_neg
-
-        # Calculate toeplitz matrix and reshape to proper size: Nx*(2N+1) X Nu*(2N+1)
-        self.pss.toeC = self.toe_l(*T)
-        self.pss.toeC = np.reshape(np.transpose(self.pss.toeC, (0, 2, 1, 3)), (self.Ny * (2 * self.N + 1), -1))
-
-        # Time domain values for D
-        for ind, xtD in enumerate(self.D_lam):
-            y = xtD(*self.pss.vars_t)
-            if type(y) == np.ndarray:
-                self.pss.Dt[ind, :] = np.real(y)
-            else:
-                self.pss.Dt[ind, :] = np.ones(self.pss.Nt) * np.real(y)
         self.pss.cD = self.dft(self.pss.Dt)
 
-        # Numeric values (arrays) for toeplitz elements in feedthrough matrix D
-        toe_pos = [self.pss.cD[:, i].reshape((self.Ny, self.Nu)) for i in range(self.N, 2 * self.N + 1)]
-        toe_neg = [self.pss.cD[:, i].reshape((self.Ny, self.Nu)) for i in range(self.N, -1, -1)]
-        toe_neg += [np.zeros((self.Ny, self.Nu))] * self.N
-        toe_pos += [np.zeros((self.Ny, self.Nu))] * self.N
-        T = toe_pos + toe_neg
-
-        # Calculate toeplitz matrix and reshape to proper size: Nx*(2N+1) X Nu*(2N+1)
-        self.pss.toeD = self.toe_l(*T)
-        self.pss.toeD = np.reshape(np.transpose(self.pss.toeD, (0, 2, 1, 3)), (self.Ny * (2 * self.N + 1), -1))
+        self.pss.toeB = self.toeplitz_setup(self.pss.cB, (self.Nx, self.Nu))
+        self.pss.toeC = self.toeplitz_setup(self.pss.cC, (self.Ny, self.Nx))
+        self.pss.toeD = self.toeplitz_setup(self.pss.cD, (self.Ny, self.Nu))
 
     def calc_modal_props(self):
         """Computes the modal properties for the current PSS"""
@@ -287,7 +235,26 @@ class HSS:
         #self.calc_td()
 
         # Compute eigenvalues and vectors of the HSS
-        eigs, rev = eig(self.pss.toeA - self.pss.Nblk)
+
+        if self.h:
+            Ht = self.calc_lam_td(self.H_lam, self.pss.vars_t)
+            H_inv_t = self.calc_lam_td(self.H_inv_lam, self.pss.vars_t)
+
+            cH = self.dft(Ht)
+            cH_inv = self.dft(H_inv_t)
+
+            #toeA = self.toeplitz_setup(cA, (self.Nx, self.Nx))
+            toeH = self.toeplitz_setup(cH, (self.Nx, self.Nx))
+            toeH_inv = self.toeplitz_setup(cH_inv, (self.Nx, self.Nx))
+
+            toeA = np.dot(np.dot(self.pss.Nblk,toeH)-np.dot(toeH, self.pss.Nblk) + np.dot(toeH, self.pss.toeA),toeH_inv)
+            #toeA = np.dot(toeH_inv, self.pss.toeA + np.dot(toeH, self.pss.Nblk)-np.dot(self.pss.Nblk, toeH))
+            #toeA = np.dot(toeH, self.pss.toeA + np.dot(toeH_inv, self.pss.Nblk)-np.dot(self.pss.Nblk, toeH_inv))
+
+        else:
+            toeA = self.pss.toeA
+
+        eigs, rev = eig(toeA - self.pss.Nblk)
         self.pss.modal_props.eigs = eigs
         lev = np.linalg.inv(rev)
         # Modes in the fundamental strip
@@ -298,10 +265,12 @@ class HSS:
         p_f = np.multiply(lev.T, rev)
         p_f = np.abs(p_f) / np.abs(p_f).max(axis=0)
         pf_n0 = p_f[self.N*self.Nx:self.N*self.Nx+self.Nx]
-        col_idxs = np.where(pf_n0 > 0.9999999999)[1]
+        col_idxs = np.where(pf_n0 > 0.9999999)[1]
         col_idxs = np.unique(col_idxs)
         self.pss.modal_props.pf_x0 = pf_n0[:, col_idxs]
         self.pss.modal_props.eig_x0 = eigs[col_idxs]
+        if col_idxs.size==0:
+            raise ValueError('Eigenvalue selection failed')
         self.pss.modal_props.weak_damp = np.max(np.real(self.pss.modal_props.eig_x0))
         self.pss.modal_props.npf = np.zeros((self.Nx, len(col_idxs)), dtype=np.int8)
         for i in range(self.Nx):
@@ -317,7 +286,7 @@ class PSS:
         :param hss_model: The HSS model to which this PSS pertains
         :param n_t: Number of samples in time domain
         """
-        nt = hss_model.N
+        nt = hss_model.N*2
         self.model = hss_model
         self.modal_props = ModalProps()
         self.Nt = nt
@@ -350,25 +319,25 @@ class PSS:
         self.cB = 1j*np.empty((nx*nu, m))
         self.cC = 1j*np.empty((nx*ny, m))
         self.cD = 1j*np.empty((ny*nu, m))
+        # NOTE: The state-space matrices above are flattened to 2 dimensions for compatibility with lambdify.
+        # This causes readability issues and may be addressed in future updates.
+
         # Toeplitz arrays
         self.toeA = 1j * np.empty((nx*m, nx*m))
         self.toeB = 1j * np.empty((nx*m, nu*m))
         self.toeC = 1j * np.empty((ny*m, nx*m))
         self.toeD = 1j * np.empty((ny*m, nu*m))
 
-        # NOTE: The state matrix arrays above are flattened to 2 dimensions for compatibility with lambdify. This causes
-        # readability issues and may be addressed in future updates.
-
         # Miscellaneous
-        self.Nvec = np.linspace(-n,n,m)      # Harmonics vector
+        self.Nvec = np.linspace(-n,n,m)  # Harmonics vector
         diags = np.asarray([[1j*i*self.model.w0]*nx for i in range(-n, n+1)])
-        self.Nblk = np.diag(diags.ravel())                      # N block diagonal matrix
-        self.exp_arr = None                                     # complex phasors for reduced DFT
+        self.Nblk = np.diag(diags.ravel())
+        self.exp_arr = None  # complex phasors for reduced DFT
 
     def plot_states(self, ax):
         """Plots the states in time domain"""
-
-        self.model.calc_td()
+        cx = np.reshape(self.cx, (self.model.Nx, -1), 'F')  # Reshape to 2-D format
+        self.xt = np.real(self.model.inv_dft(cx))
         for ind, xx in enumerate(self.xt):
             ax.plot(self.t_arr, xx, label='{}'.format(self.model.x[ind]))
         plt.legend()
