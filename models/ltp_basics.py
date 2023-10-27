@@ -1,5 +1,5 @@
-from hss import HSS
-from sympy import symbols, sin, cos, Matrix, atan2, atan
+from hsslib.hss import HSS
+from sympy import symbols, sin, cos, Matrix
 import numpy as np
 from power_flow.read_data_with_trafos import read_data
 from power_flow.nr_loadflow import newton_raphson, printsys
@@ -261,7 +261,6 @@ class Lowpass(HSS):
 
 def compare_with_chirp():
     import pandas as pd
-    import matplotlib.pyplot as plt
     import matplotlib
     matplotlib.rc('ytick', labelsize=15)
     df = pd.read_csv('data/mathieuchirp.csv', header=None)

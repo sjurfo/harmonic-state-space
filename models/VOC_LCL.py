@@ -1,10 +1,9 @@
-from hss import HSS
+from hsslib.hss import HSS
 from sympy import symbols, sin, cos, Matrix
 import numpy as np
 import matplotlib.pyplot as plt
 from power_flow.read_data_with_trafos import read_data
 from power_flow.nr_loadflow import newton_raphson, printsys
-from parametric_studies import ParametricSweep
 
 from sympy import Function
 

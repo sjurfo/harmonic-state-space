@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 from sympy import symbols, cos, sin, Matrix
 import numpy as np
 
-from hss import HSS
-from parametric_studies import ParametricSweep
+from hsslib.hss import HSS
+from hsslib.parametric_studies import ParametricSweep
 
 
 class SofteningDuffing(HSS):
@@ -41,7 +41,6 @@ def figure_weakest_damping():
 
     sweep = ParametricSweep(duff)
     sweep.two_param_sweep([np.linspace(0.3,2, 25), np.linspace(0.1,4,25)])
-    from matplotlib import cm
     fig, ax = plt.subplots(1)
     levels = np.linspace(-100,0,21)
 
@@ -71,7 +70,7 @@ def duffing_htf():
     freqs = np.linspace(-50,150,601)
     #freqs = 1*np.logspace(0,3,500)
 
-    from htf import HTF
+    from hsslib.htf import HTF
     Hduff = HTF(duff, freqs)
     midcol = Hduff.get_mid_col(tol=1e-10)
     midcol.plot()

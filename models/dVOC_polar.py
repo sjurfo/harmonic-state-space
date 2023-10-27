@@ -1,9 +1,8 @@
-from hss import HSS
+from hsslib.hss import HSS
 import numpy as np
-from sympy import symbols, sin, cos, Matrix, atan2, Function, simplify
-import matplotlib.pyplot as plt
+from sympy import symbols, sin, cos, Matrix, atan2, Function
 
-from parametric_studies import ParametricSweep
+from hsslib.parametric_studies import ParametricSweep
 
 
 
@@ -88,7 +87,7 @@ class dVOC(HSS):
 
         # Parametric study
         self.p = [rvir, eta, mu]  # Declare symbolic variables for parametric study
-        self.p_value = [0.065, 0.05, 0.01]  # Values if they are not swept
+        self.p_value = [0.065, 0.05, 1000]  # Values if they are not swept
 
         #  Constant parameters
 
@@ -144,11 +143,14 @@ class dVOC(HSS):
 
     def change_of_coordinates(self):
         self.h = [x for x in self.x]
-        self.h[1], self.h[2] = c2p(self.x[1], self.x[2], -self.w0 * self.t)
-        self.x[1].name = 'V'
-        self.x[2].name = 'th'
+        #self.h[1], self.h[2] = c2p(self.x[1], self.x[2], 0)
+        #self.x[1].name = 'V'
+        #self.x[2].name = 'th'
+        self.h[1], self.h[2] = Rotate2d(self.x[1], self.x[2], self.w0*self.t)
+        self.x[1].name = 'va'
+        self.x[2].name = 'vb'
 
-        self.h[3], self.h[4] = c2p(self.x[3], self.x[4], -self.w0 * self.t)
+        self.h[3], self.h[4] = c2p(self.x[3], self.x[4],-self.w0*self.t)
         self.x[3].name = 'Isog'
         self.x[4].name = 'th_sog'
         self.change_of_variable()
@@ -333,7 +335,7 @@ class dVOC_Statcom(HSS):
         rf = 0.006
         lf = xf / self.w0
         cdc = Cdc * self.vdcb ** 2 / self.sb
-        cdc = cdc*1000
+        #cdc = cdc*1000
 
         eta = symbols('eta')  # eta gives the P-w droop, dw=eta*dP  in per unit.
         mu = symbols('mu')  # mu gives the Q-V droop, dV=mu*dQ  in per unit
@@ -419,19 +421,14 @@ class dVOC_Statcom(HSS):
 
     def change_of_coordinates(self):
         self.h = [x for x in self.x]
-        vd = self.x[1]
-        vq = self.x[2]
-        xa = self.x[3]
-        xb = self.x[4]
-        self.h[1] = (vd ** 2 + vq ** 2) ** 0.5
-        self.h[2] = atan2(vq, vd)
-        self.h[3] = (xa ** 2 + xb ** 2) ** 0.5
-        self.h[4] = atan2(xb, xa) - self.w0 * self.t
-        self.x[1].name = 'Vosc'
-        self.x[2].name = 'th_osc'
+        self.h[1], self.h[2] = c2p(self.x[1], self.x[2], 0)
+        self.x[1].name = 'V'
+        self.x[2].name = 'th'
+
+        self.h[3], self.h[4] = c2p(self.x[3], self.x[4],-self.w0*self.t)
         self.x[3].name = 'Isog'
         self.x[4].name = 'th_sog'
-        super().__init__(13)
+        self.change_of_variable()
 
 
 #dvoc = dVOC_Statcom()
@@ -456,7 +453,8 @@ dvoc = dVOC()
 dvoc.find_pss()
 dvoc.change_of_coordinates()
 sweep = ParametricSweep(dvoc)
-sweep.eigenloci(np.flip(np.linspace(0.01,0.1,30)), p_idx=0)
+#sweep.eigenloci(np.flip(np.linspace(0.01,0.1,30)), p_idx=0)
+sweep.eigenloci(np.linspace(0.01,0.1,30), p_idx=2)
 sweep.eigenloci_plot()
 
 #sweep.eigenloci(np.flip(np.linspace(0.001,0.1,30)), p_idx=2)

@@ -1,8 +1,8 @@
 import numpy as np
 from sympy import symbols, cos, sin, Matrix
-from hss import HSS
-from htf import HTF
-from parametric_studies import ParametricSweep
+from hsslib.hss import HSS
+from hsslib.htf import HTF
+from hsslib.parametric_studies import ParametricSweep
 
 
 class PLL(HSS):
@@ -100,7 +100,6 @@ param_sweep.weakest_damping_3d()
 
 
 pll = SogiPllT2()
-import matplotlib.pyplot as plt
 pll.find_pss()
 pll.calc_modal_props()
 pll.toep_BCD()

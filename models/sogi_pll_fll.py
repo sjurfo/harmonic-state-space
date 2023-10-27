@@ -3,9 +3,8 @@ from sympy import symbols, cos, sin, Matrix, solve, simplify
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-from hss import HSS
-from htf import HTF
-from parametric_studies import ParametricSweep
+from hsslib.hss import HSS
+from hsslib.parametric_studies import ParametricSweep
 
 
 class SogiPll(HSS):
@@ -194,6 +193,7 @@ def ch4_figure(sweep, x, y, name):
                 pad_inches=0.3, transparent=True, format='svg', dpi=600)
 
 
+## Sweep for all figures in 4.1
 ffp = (True, False)
 for x in ffp:
     for y in ffp:
@@ -209,9 +209,3 @@ for x in ffp:
 
         ch4_figure(sweep_pll, x, y, 'sogi_pll')
         ch4_figure(sweep_fll, x, y, 'sogi_fll')
-
-#cbar = fig.colorbar(contourf, ticks=np.linspace(levels[0], levels[-1], 5))
-#cbar.ax.tick_params(labelsize=20)
-
-
-

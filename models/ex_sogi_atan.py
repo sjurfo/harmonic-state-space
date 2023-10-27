@@ -1,6 +1,5 @@
-import matplotlib.pyplot as plt
-from sympy import symbols, cos, sin, atan2, Matrix
-from hss import HSS
+from sympy import symbols, cos, atan2, Matrix
+from hsslib.hss import HSS
 
 
 class SogiAtan(HSS):

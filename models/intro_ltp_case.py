@@ -1,6 +1,5 @@
-import matplotlib.pyplot as plt
-from sympy import symbols, cos, sin, atan2, Matrix
-from hss import HSS
+from sympy import symbols, cos, sin, Matrix
+from hsslib.hss import HSS
 
 
 class IntroCase(HSS):
@@ -41,7 +40,7 @@ case = IntroCase(N=13)
 case.find_pss()
 
 import numpy as np
-from parametric_studies import ParametricSweep
+from hsslib.parametric_studies import ParametricSweep
 
 sweep = ParametricSweep(case)
 sweep.eigenloci(np.linspace(0.,1.7,51))

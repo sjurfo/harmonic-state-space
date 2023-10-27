@@ -1,9 +1,7 @@
-from hss import HSS
+from hsslib.hss import HSS
 import numpy as np
 from sympy import symbols, sin, cos, Matrix, Function
 import matplotlib.pyplot as plt
-
-from parametric_studies import ParametricSweep
 
 
 class Rotate2d(Function):

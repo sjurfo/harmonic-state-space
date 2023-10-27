@@ -1,5 +1,5 @@
-from hss import HSS
-from sympy import symbols, sin, cos, Matrix, atan2, atan, Function
+from hsslib.hss import HSS
+from sympy import symbols, sin, cos, Matrix, atan2, Function
 import numpy as np
 
 
