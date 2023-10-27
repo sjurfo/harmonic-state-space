@@ -33,7 +33,7 @@ class dVOC_1ph_dq_LCL(HSS):
 
     def setup(self):
         # print('Setup symbolic HSS')
-        bus_data, line_data = read_data('../data/voc_statcom.xlsx')
+        bus_data, line_data = read_data('../../data/voc_statcom.xlsx')
         print('Newton-Raphson load flow started')
         newton_raphson(bus_data)
         printsys(bus_data)

@@ -32,7 +32,7 @@ class dVOC_1ph(HSS):
 
     def setup(self):
         #print('Setup symbolic HSS')
-        bus_data, line_data = read_data('../data/datavoc.xlsx')
+        bus_data, line_data = read_data('../../data/datavoc.xlsx')
         print('Newton-Raphson load flow started')
         newton_raphson(bus_data)
         printsys(bus_data)
@@ -172,7 +172,7 @@ class dVOC_1ph_dq(HSS):
 
     def setup(self):
         #print('Setup symbolic HSS')
-        bus_data, line_data = read_data('../data/datavoc.xlsx')
+        bus_data, line_data = read_data('../../data/datavoc.xlsx')
         print('Newton-Raphson load flow started')
         newton_raphson(bus_data)
         printsys(bus_data)
@@ -307,7 +307,7 @@ class dVOC_1ph_dq_LCL(HSS):
 
     def setup(self):
         # print('Setup symbolic HSS')
-        bus_data, line_data = read_data('../data/voc_statcom.xlsx')
+        bus_data, line_data = read_data('../../data/voc_statcom.xlsx')
         print('Newton-Raphson load flow started')
         newton_raphson(bus_data)
         printsys(bus_data)
@@ -513,7 +513,7 @@ class dVOC_Statcom(HSS):
 
     def setup(self):
         #print('Setup symbolic HSS')
-        bus_data, line_data = read_data('../data/voc_statcom.xlsx')
+        bus_data, line_data = read_data('../../data/voc_statcom.xlsx')
         print('Newton-Raphson load flow started')
         newton_raphson(bus_data)
         printsys(bus_data)
@@ -710,7 +710,7 @@ class dVOC_Statcom_Tsukuba(HSS):
 
     def setup(self):
         #print('Setup symbolic HSS')
-        bus_data, line_data = read_data('../data/voc_statcom.xlsx')
+        bus_data, line_data = read_data('../../data/voc_statcom.xlsx')
         print('Newton-Raphson load flow started')
         newton_raphson(bus_data)
         printsys(bus_data)
@@ -889,7 +889,7 @@ class dVOC_Statcom_Tsukuba_orig(HSS):
 
     def setup(self):
         #print('Setup symbolic HSS')
-        bus_data, line_data = read_data('../data/voc_statcom.xlsx')
+        bus_data, line_data = read_data('../../data/voc_statcom.xlsx')
         print('Newton-Raphson load flow started')
         newton_raphson(bus_data)
         printsys(bus_data)
@@ -1070,7 +1070,7 @@ class dVOC_Statcom_Tsukuba_mod(HSS):
 
     def setup(self):
         #print('Setup symbolic HSS')
-        bus_data, line_data = read_data('../data/voc_statcom.xlsx')
+        bus_data, line_data = read_data('../../data/voc_statcom.xlsx')
         print('Newton-Raphson load flow started')
         newton_raphson(bus_data)
         printsys(bus_data)
@@ -1258,7 +1258,7 @@ class dVOC_GridCon_Tsukuba(HSS):
 
     def setup(self):
         #print('Setup symbolic HSS')
-        bus_data, line_data = read_data('../data/voc_statcom.xlsx')
+        bus_data, line_data = read_data('../../data/voc_statcom.xlsx')
         print('Newton-Raphson load flow started')
         newton_raphson(bus_data)
         printsys(bus_data)
@@ -1431,7 +1431,7 @@ class dVOC_Statcom_simple(HSS):
 
     def setup(self):
         #print('Setup symbolic HSS')
-        bus_data, line_data = read_data('../data/voc_statcom_simple.xlsx')
+        bus_data, line_data = read_data('../../data/voc_statcom_simple.xlsx')
         print('Newton-Raphson load flow started')
         newton_raphson(bus_data)
         printsys(bus_data)
@@ -1602,7 +1602,7 @@ class dVOC_Statcom_vi(HSS):
         Cdc_r = symbols('Cdc_r')
 
         # Read system and solve power flow
-        bus_data, line_data = read_data('../data/voc_statcom.xlsx')
+        bus_data, line_data = read_data('../../data/voc_statcom.xlsx')
         print('Newton-Raphson load flow started')
         newton_raphson(bus_data)
         printsys(bus_data)
