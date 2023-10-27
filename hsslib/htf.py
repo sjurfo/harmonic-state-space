@@ -25,7 +25,7 @@ class HTF:
         if not Nplot or Nplot>self.N:
             Nplot = self.N
         if axs.size==0:
-            fig, axs = plt.subplots(Nplot*2+1, Nplot*2+1, sharex=True)
+            fig, axs = plt.subplots(Nplot*2+1, Nplot*2+1, sharex='col', sharey='row')
         idxs = range(self.N-Nplot, self.N+Nplot+1)
         for n, row in enumerate(idxs):
             for m, col in enumerate(idxs):
@@ -34,8 +34,8 @@ class HTF:
                     axs[n,m].plot(self.freqs, np.abs(self.htf[:,row,col]))
                     axs[n,m].set_yscale(yscale)
                     axs[n,m].set_xscale(xscale)
-
-        return axs
+                    axs[n,m].grid()
+        return fig, axs
 
     def get_mid_col(self, tol= 1e-2, N = 6):
         htfs = []

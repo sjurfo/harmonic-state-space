@@ -32,7 +32,7 @@ class HSS:
         self.p_space = None  # Parameter space
         self.p_value = []  # Inserted values in p
         self.x0 = []    # Initial x values
-        self.u0 = []    # Input expression
+        self. u0= [0]   # Input expression
         self.setup()    # Set the above attributes
 
         # Symbolic Jacobian matrices
