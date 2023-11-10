@@ -1,1 +1,1 @@
-# HSS
+# harmonic-state-space
