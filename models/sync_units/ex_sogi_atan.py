@@ -37,6 +37,13 @@ class SogiAtan(HSS):
 sogi = SogiAtan(N=3)
 sogi.find_pss()
 
+# Compute and plot eigenvalues
+#sogi.calc_modal_props()
+#import matplotlib.pyplot as plt
+#fig, ax = plt.subplots()
+#sogi.pss.modal_props.plot_eigs(ax)
+
+# Do parametric sweep for sogi gain
 #import numpy as np
 #from parametric_studies import ParametricSweep
 

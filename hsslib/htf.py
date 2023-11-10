@@ -51,7 +51,7 @@ class HTF:
     def siso_eq(self, other):
         """
 
-        :param other: Grid impedance (HTM)
+        :param other: Grid impedance (HTF)
         :return:
         """
         a = self.htf[:,:,self.N]

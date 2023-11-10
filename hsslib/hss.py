@@ -1,6 +1,5 @@
 import numpy as np
-from numpy.linalg import solve
-from sympy import symbols, sin, cos, Matrix, lambdify
+from sympy import symbols, Matrix, lambdify
 from scipy.linalg import toeplitz, eig
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve

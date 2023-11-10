@@ -1,6 +1,6 @@
+import numpy as np
 import matplotlib.pyplot as plt
 from sympy import symbols, cos, sin, Matrix
-import numpy as np
 
 from hsslib.hss import HSS
 from hsslib.parametric_studies import ParametricSweep
@@ -74,4 +74,3 @@ def duffing_htf():
     Hduff = HTF(duff, freqs)
     midcol = Hduff.get_mid_col(tol=1e-10)
     midcol.plot()
-
