@@ -54,11 +54,3 @@ Y = HTF(cc_vsc, 5*np.logspace(0,3,250))
 Y.plot(Nplot=3,xscale='log')
 Ym = Y.get_mid_col()
 axs = Ym.plot(xscale='log')
-
-#fig.text(0.5, 0.04, r'$f$ $[Hz]$', ha='center', size='12')
-#fig.text(0.04, 0.5, r'$|H|$ $[pu]$', va='center', rotation='vertical', size='12')
-#axs[1].set_xlabel(r'$f$ $[Hz]$')
-#axs[0].set_ylabel(r'$|H|$ $[pu]$')
-#axs[1].set_ylabel(r'$\angle{H}$ $[rad]$')
-
-#plt.savefig('y_prcc_midcol', bbox_inches="tight", pad_inches=0.3, transparent=True, format='png', dpi=600)
