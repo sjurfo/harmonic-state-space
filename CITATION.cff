@@ -1,0 +1,29 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: harmonic-state-space
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Sjur
+    family-names: Føyen
+    email: foyen.sjur@ntnu.no
+    affiliation: Norwegian University of Science and Technology
+    orcid: 'https://orcid.org/0000-0002-3323-2743'
+  - given-names: Chen
+    family-names: Zhang
+    email: nealbc@sjtu.edu.cn
+    affiliation: Shanghai Jiao Tong University
+    orcid: 'https://orcid.org/0000-0002-2808-8492'
+abstract: >-
+  A repo designed for efficient modelling of frequency
+  coupled power electronics systems,  complementary to the
+  doctoral thesis "Modelling of frequency-coupled power
+  electronics systems: Automated model generation and chirp
+  frequency
+
+  scanning, applied to single-phase VSCs". 
+license: MIT
